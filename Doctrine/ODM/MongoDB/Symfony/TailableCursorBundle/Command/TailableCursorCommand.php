@@ -1,19 +1,14 @@
 <?php
 
-namespace Doctrine\ODM\MongoDB\Symfony\TailableCursorBundle\Command;
+namespace Doctrine\Bundle\MongoDBTailableCursorBundle\Command;
 
-use Symfony\Bundle\FrameworkBundle\Command\Command;
+use Doctrine\Bundle\MongoDBTailableCursorBundle\ProcessorInterface;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\HttpFoundation\Request;
-use Doctrine\ODM\MongoDB\Symfony\TailableCursorBundle\ProcessorInterface;
-use ReflectionClass;
-use Exception;
-use InvalidArgumentException;
 
-class TailableCursorCommand extends Command
+class TailableCursorCommand extends ContainerAwareCommand
 {
     protected function configure()
     {
@@ -28,17 +23,17 @@ class TailableCursorCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $dm = $this->container->get('doctrine.odm.mongodb.document_manager');
+        $dm = $this->getContainer()->get('doctrine.odm.mongodb.document_manager');
         $repository = $dm->getRepository($input->getArgument('document'));
-        $repositoryReflection = new ReflectionClass(get_class($repository));
+        $repositoryReflection = new \ReflectionClass(get_class($repository));
         $documentReflection = $repository->getDocumentManager()->getMetadataFactory()->getMetadataFor($input->getArgument('document'))->getReflectionClass();
-        $processor = $this->container->get($input->getArgument('processor'));
+        $processor = $this->getContainer()->get($input->getArgument('processor'));
 
-        if ( ! $processor instanceof ProcessorInterface) {
-            throw new InvalidArgumentException('A tailable cursor processor must implement the ProcessorInterface.');
+        if (!$processor instanceof ProcessorInterface) {
+            throw new \InvalidArgumentException('A tailable cursor processor must implement the ProcessorInterface.');
         }
 
-        $processorReflection = new ReflectionClass(get_class($processor));
+        $processorReflection = new \ReflectionClass(get_class($processor));
         $method = $input->getArgument('finder');
 
         $output->writeln(sprintf('Getting cursor for <info>%s</info> from <info>%s#%s</info>', $input->getArgument('document'), $repositoryReflection->getShortName(), $method));
@@ -46,12 +41,9 @@ class TailableCursorCommand extends Command
 
         $cursor = $repository->$method();
 
-        if (!count($cursor)) {
-            $output->writeln('<comment>Nothing found, waiting to try again</comment>');
-        }
-
         while (true) {
-            if ( ! $cursor->hasNext()) {
+            while (!$cursor->hasNext()) {
+                $output->writeln('<comment>Nothing found, waiting to try again</comment>');
                 // read all results so far, wait for more
                 sleep(10);
             }
@@ -66,13 +58,13 @@ class TailableCursorCommand extends Command
             $output->writeln(null);
 
             try {
-                $processor->process($output, $document);
-            } catch (Exception $e) {
+                $processor->process($document);
+            } catch (\Exception $e) {
                 $output->writeln(sprintf('Error occurred while processing document: <error>%s</error>', $e->getMessage()));
                 continue;
             }
 
-            $dm->flush(array('safe' => true));
+            $dm->flush();
             $dm->clear();
         }
     }
