@@ -1,0 +1,12 @@
+{
+    "name": "doctrine/mongodb-odm-tailable-cursor-bundle",
+    "type": "symfony-bundle",
+    "require": {
+        "php": ">=5.3.3",
+        "doctrine/mongodb-odm-bundle": "*"
+    },
+    "autoload": {
+        "psr-0": { "Doctrine\\Bundle\\MongoDBTailableCursorBundle": "" }
+    },
+    "target-dir": "Doctrine/Bundle/MongoDBTailableCursorBundle"
+}
