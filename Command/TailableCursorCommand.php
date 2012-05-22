@@ -18,6 +18,7 @@ class TailableCursorCommand extends ContainerAwareCommand
             ->addArgument('document', InputArgument::REQUIRED, 'The document we are going to tail the cursor for.')
             ->addArgument('finder', InputArgument::REQUIRED, 'The repository finder method which returns the cursor to tail.')
             ->addArgument('processor', InputArgument::REQUIRED, 'The service id to use to process the documents.')
+            ->addOption('sleep-time', null, InputOption::VALUE_REQUIRED, 'The number of seconds to wait between two checks.', 15)
         ;
     }
 
@@ -28,6 +29,7 @@ class TailableCursorCommand extends ContainerAwareCommand
         $repositoryReflection = new \ReflectionClass(get_class($repository));
         $documentReflection = $repository->getDocumentManager()->getMetadataFactory()->getMetadataFor($input->getArgument('document'))->getReflectionClass();
         $processor = $this->getContainer()->get($input->getArgument('processor'));
+        $sleepTime = $input->getOption('sleep-time');
 
         if (!$processor instanceof ProcessorInterface) {
             throw new \InvalidArgumentException('A tailable cursor processor must implement the ProcessorInterface.');
@@ -45,7 +47,7 @@ class TailableCursorCommand extends ContainerAwareCommand
             while (!$cursor->hasNext()) {
                 $output->writeln('<comment>Nothing found, waiting to try again</comment>');
                 // read all results so far, wait for more
-                sleep(10);
+                sleep($sleepTime);
             }
             $cursor->next();
             $document = $cursor->current();
