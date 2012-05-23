@@ -1,6 +1,6 @@
 <?php
 
-namespace Doctrine\ODM\MongoDB\Symfony\TailableCursorBundle;
+namespace Doctrine\Bundle\MongoDBTailableCursorBundle;
 
 interface ProcessorInterface
 {
